@@ -684,7 +684,7 @@ async function computePlan(fresh) {
   const counters = new Map(), plan = [];
   for (const it of list) {
     const day = dayKey(it.taken);
-    const visit = `${day}_${project}_SiteVisit`;
+    const visit = `${day}_${project}`;
     const parts = [day, project, it.loc, it.subj]; const note = clean(it.note, 30);
     if (note) parts.push(note);
     const base = parts.join('_');
