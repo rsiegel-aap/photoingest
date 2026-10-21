@@ -38,7 +38,9 @@ button.primary{background:var(--accent);color:var(--accent-text);border-color:va
 #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .card{position:relative;height:254px;contain:layout paint style;content-visibility:auto;contain-intrinsic-size:auto 254px;border:2px solid transparent;background:var(--bg);border-radius:8px;overflow:hidden;cursor:pointer;user-select:none;outline:1px solid var(--line)}
 .card .cb{position:absolute;top:6px;left:6px;width:20px;height:20px;margin:0;cursor:pointer;accent-color:var(--accent);z-index:1;box-shadow:0 0 0 2px var(--panel);border-radius:3px}
-.card.done{opacity:.6}
+.card .donebadge{display:none;position:absolute;left:6px;top:88px;padding:0 7px;line-height:20px;border-radius:10px;background:var(--ok);color:var(--accent-text,#fff);font-size:11px;font-weight:700;z-index:1}
+.card.done .donebadge{display:block}
+.card.done{outline-color:var(--ok)}
 .card.sel{border-color:var(--accent);background:var(--sel)}
 .card .thumb{height:110px;background:var(--chip);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;overflow:hidden}
 .card img{width:100%;height:100%;object-fit:cover;display:block}
@@ -93,7 +95,7 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
       <button id="selNone" disabled>Select none</button>
       <button id="selUntagged" disabled>Select untagged</button>
       <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="onlyUntagged"> Show untagged only</label>
-      <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="showDone"> Show completed</label>
+      <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="showDone" checked> Show completed</label>
       <span class="count" id="count"></span>
     </div>
     <div id="grid"><div class="empty">Choose a source folder to load photos.<br>Click to select a photo, Ctrl/Cmd-click to add, Shift-click for a range.</div></div>
@@ -158,7 +160,7 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
       <div class="plan" id="doneGroups"></div>
       <details id="doneNames"><summary>Completed file names</summary><pre id="doneList"></pre></details>
       <div class="row" style="margin-top:8px"><button id="clearDone">Clear completed list</button></div>
-      <div class="hint">Completed photos leave the queue and are hidden from the photo grid (tick "Show completed" to see them). Clearing this list only empties it here; the record of what was copied stays in each visit folder's _ingest_log.csv.</div>
+      <div class="hint">Completed photos leave the queue but stay in the photo grid with a green "Copied" mark and their tags, so you can still see what was taken before and after (untick "Show completed" above the grid to hide them). Clearing this list only empties it here; the record of what was copied stays in each visit folder's _ingest_log.csv.</div>
     </div>
   </aside>
 </main>
@@ -547,7 +549,7 @@ const io = new IntersectionObserver(entries => {
 }, {rootMargin: '400px'});
 
 function cardHTML(it) {
-  return `<div class="card" data-id="${it.id}"><input type="checkbox" class="cb" aria-label="Select ${esc(it.name)}"><div class="thumb">${it.video ? 'VIDEO' : ''}</div><button type="button" class="zoom" title="Preview larger" aria-label="Preview ${esc(it.name)}">&#x2922;</button><div class="meta"><div class="nm" title="${esc(it.rel)}">${esc(it.name)}</div><div class="dt">Reading…</div><div class="tg"><span class="chip none">not tagged</span></div><div class="st"></div></div></div>`;
+  return `<div class="card" data-id="${it.id}"><input type="checkbox" class="cb" aria-label="Select ${esc(it.name)}"><div class="thumb">${it.video ? 'VIDEO' : ''}</div><span class="donebadge" title="Already copied to the destination">&#10003; Copied</span><button type="button" class="zoom" title="Preview larger" aria-label="Preview ${esc(it.name)}">&#x2922;</button><div class="meta"><div class="nm" title="${esc(it.rel)}">${esc(it.name)}</div><div class="dt">Reading…</div><div class="tg"><span class="chip none">not tagged</span></div><div class="st"></div></div></div>`;
 }
 function buildGrid() {
   const g = $('grid'); cards.clear();
