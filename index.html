@@ -38,6 +38,7 @@ button.primary{background:var(--accent);color:var(--accent-text);border-color:va
 #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .card{position:relative;height:254px;contain:layout paint style;content-visibility:auto;contain-intrinsic-size:auto 254px;border:2px solid transparent;background:var(--bg);border-radius:8px;overflow:hidden;cursor:pointer;user-select:none;outline:1px solid var(--line)}
 .card .cb{position:absolute;top:6px;left:6px;width:20px;height:20px;margin:0;cursor:pointer;accent-color:var(--accent);z-index:1;box-shadow:0 0 0 2px var(--panel);border-radius:3px}
+.card.done{opacity:.6}
 .card.sel{border-color:var(--accent);background:var(--sel)}
 .card .thumb{height:110px;background:var(--chip);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;overflow:hidden}
 .card img{width:100%;height:100%;object-fit:cover;display:block}
@@ -92,6 +93,7 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
       <button id="selNone" disabled>Select none</button>
       <button id="selUntagged" disabled>Select untagged</button>
       <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="onlyUntagged"> Show untagged only</label>
+      <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="showDone"> Show completed</label>
       <span class="count" id="count"></span>
     </div>
     <div id="grid"><div class="empty">Choose a source folder to load photos.<br>Click to select a photo, Ctrl/Cmd-click to add, Shift-click for a range.</div></div>
@@ -150,6 +152,14 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
       <progress id="prog" value="0" max="1" hidden></progress>
       <div class="hint">Originals are never changed. The browser can't show the full local path of the destination, so keep that folder's path short (SharePoint and Windows both limit total path length).</div>
     </div>
+    <div class="panel" id="donePanel" hidden>
+      <h2>5. Completed</h2>
+      <div id="doneSummary" class="hint"></div>
+      <div class="plan" id="doneGroups"></div>
+      <details id="doneNames"><summary>Completed file names</summary><pre id="doneList"></pre></details>
+      <div class="row" style="margin-top:8px"><button id="clearDone">Clear completed list</button></div>
+      <div class="hint">Completed photos leave the queue and are hidden from the photo grid (tick "Show completed" to see them). Clearing this list only empties it here; the record of what was copied stays in each visit folder's _ingest_log.csv.</div>
+    </div>
   </aside>
 </main>
 
@@ -179,7 +189,7 @@ const thumbQueue = []; let thumbActive = 0;
 // -------------------------------------------------------------------- state
 const state = {
   cfg: {projects: [], locations: [], subjects: [], dir: null, wb: null, warn: [], added: {locations: [], subjects: []}, label: ''},
-  src: null, dest: null, items: [], sel: new Set(), last: null, busy: false, loading: false, gen: 0, plan: []
+  src: null, dest: null, items: [], completed: [], sel: new Set(), last: null, busy: false, loading: false, gen: 0, plan: []
 };
 const cache = new Map();   // existing-name cache for destination folders
 const $ = id => document.getElementById(id);
@@ -608,7 +618,9 @@ async function makeThumb(it) {
 
 // Selection: checking a box (or clicking a photo) adds/removes just that photo.
 // Shift extends a range from the last photo you clicked. Only the cards that change are touched.
+const isShown = it => !(it.done && !$('showDone').checked) && !($('onlyUntagged').checked && tagged(it));
 function setSelected(id, on) {
+  if (on && state.items[id] && state.items[id].done) return;       // completed photos can't be re-selected
   if (on === state.sel.has(id)) return;
   on ? state.sel.add(id) : state.sel.delete(id);
   updateSelState(state.items[id]);
@@ -652,7 +664,8 @@ function updateStatus(it) {
 function updateCard(it) {
   const c = cards.get(it.id); if (!c) return;
   updateSelState(it);
-  c.style.display = $('onlyUntagged').checked && tagged(it) ? 'none' : '';
+  c.style.display = isShown(it) ? '' : 'none';
+  c.classList.toggle('done', !!it.done);
   const dt = c.querySelector('.dt');
   dt.textContent = it.ready ? fmtDate(it.taken) + (it.dateSrc === 'Camera' ? '' : ' (file date)') : 'Reading…';
   dt.classList.toggle('fallback', it.ready && it.dateSrc !== 'Camera');
@@ -680,7 +693,7 @@ async function existingNames(parts) {
 async function computePlan(fresh) {
   if (fresh) cache.clear();
   const project = curProject();
-  const list = state.items.filter(it => it.ready && tagged(it))
+  const list = state.items.filter(it => !it.done && it.ready && tagged(it))
     .sort((a, b) => a.taken - b.taken || a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
   const counters = new Map(), plan = [];
   for (const it of list) {
@@ -717,16 +730,16 @@ async function runPlan() {
   $('plan').innerHTML = [...groups].map(([k, n]) => `<div>${esc(k)} <span class="chip">${n}</span></div>`).join('');
   $('names').textContent = plan.map(p => p.rel).join('\n');
   $('allNames').hidden = !plan.length;
-  const total = state.items.length;
-  $('summary').textContent = !total ? 'Nothing to copy yet.' :
+  const total = state.items.filter(it => !it.done).length;
+  $('summary').textContent = !state.items.length ? 'Nothing to copy yet.' : !total ? 'Everything has been copied. See Completed below.' :
     `${plan.length} of ${total} files will be copied` + (total - plan.length ? `; ${total - plan.length} untagged or not ready will be left out.` : '.') +
     (state.dest ? '' : ' Choose a destination folder to enable copying.');
   updateButtons();
 }
 function updateSummary() {
   const total = state.items.length;
-  let nTag = 0; for (const it of state.items) if (tagged(it)) nTag++;
-  $('count').textContent = total ? `${total} files, ${nTag} tagged, ${total - nTag} untagged` : '';
+  let nTag = 0, nDone = 0; for (const it of state.items) { if (it.done) nDone++; else if (tagged(it)) nTag++; }
+  $('count').textContent = total ? `${total} files, ${nDone} completed, ${nTag} tagged, ${total - nDone - nTag} untagged` : '';
 }
 function updateSelInfo() { $('selInfo').textContent = `${state.sel.size} selected`; }
 function updateButtons() {
@@ -743,7 +756,7 @@ function refreshAll() {               // bulk changes only (project switch, filt
 
 // ------------------------------------------------------------------ preview
 let pvId = -1, pvUrl = null, pvToken = 0;
-const pvList = () => state.items.filter(it => !($('onlyUntagged').checked && tagged(it)));
+const pvList = () => state.items.filter(isShown);
 function pvRelease() { if (pvUrl) { URL.revokeObjectURL(pvUrl); pvUrl = null; } }
 function showPreview(id) {
   const it = state.items[id]; if (!it) return;
@@ -857,7 +870,7 @@ async function doCopy() {
   const plan = await computePlan(true);
   if (!plan.length) return;
   const fast = $('fastVerify').checked;
-  const untagged = state.items.length - plan.length;
+  const untagged = state.items.filter(it => !it.done).length - plan.length;
   const fileDates = plan.filter(p => p.item.dateSrc !== 'Camera').length;
   const visits = new Set(plan.map(p => p.visit)).size;
   const longest = Math.max(...plan.map(p => p.rel.length));
@@ -898,6 +911,14 @@ async function doCopy() {
     const c = results.filter(r => r.status.startsWith('copied')).length;
     const s = results.filter(r => r.status.startsWith('skipped')).length;
     const f = results.filter(r => r.status.startsWith('FAILED')).length;
+    const stamp = new Date();
+    plan.forEach((p, k) => {
+      const r = results[k]; if (!r || !(r.status.startsWith('copied') || r.status.startsWith('skipped'))) return;
+      p.item.done = true; setSelected(p.item.id, false);
+      state.completed.push({visit: p.visit, loc: p.loc, src: p.item.rel, dest: p.rel, status: r.status, at: stamp});
+      updateCard(p.item);
+    });
+    state.last = null; renderDone(); updateSummary(); updateSelInfo();
     state.busy = false; cache.clear(); updateButtons(); schedulePlan();
     await modal({title: f ? 'Finished with problems' : 'Done',
       body: `Copied: ${c}\nSkipped (already there): ${s}\nFailed: ${f}` +
@@ -910,6 +931,17 @@ async function doCopy() {
     state.busy = false; updateButtons();
     await modal({title: 'Copy stopped', body: `${e.message || e}\n\nFiles already copied are in the destination. Run the copy again to continue; identical files are skipped.`, ok: 'OK', cancel: null});
   }
+}
+
+function renderDone() {
+  const list = state.completed;
+  $('donePanel').hidden = !list.length;
+  const groups = new Map();
+  for (const c of list) { const k = `${c.visit} / ${c.loc}`; groups.set(k, (groups.get(k) || 0) + 1); }
+  const nSkip = list.filter(c => c.status.startsWith('skipped')).length;
+  $('doneSummary').textContent = `${list.length} file(s) completed this session` + (nSkip ? ` (${nSkip} already existed and were skipped).` : '.');
+  $('doneGroups').innerHTML = [...groups].map(([k, n]) => `<div>${esc(k)} <span class="chip">${n}</span></div>`).join('');
+  $('doneList').textContent = list.map(c => c.dest).join('\n');
 }
 
 // ------------------------------------------------------------------- events
@@ -1007,10 +1039,11 @@ function init() {
     const d = await pickDir({id: 'photoDest', mode: 'readwrite', startIn: 'documents'}); if (!d) return;
     state.dest = d; cache.clear(); $('dstInfo').textContent = `Destination: ${d.name}`; updateButtons(); schedulePlan();
   };
-  $('selAll').onclick = () => { state.items.forEach(i => setSelected(i.id, true)); updateSelInfo(); updateButtons(); };
+  $('selAll').onclick = () => { state.items.forEach(i => { if (isShown(i)) setSelected(i.id, true); }); updateSelInfo(); updateButtons(); };
   $('selNone').onclick = () => selectOnly([]);
-  $('selUntagged').onclick = () => selectOnly(state.items.filter(i => !tagged(i)).map(i => i.id));
-  $('onlyUntagged').onchange = refreshAll;
+  $('selUntagged').onclick = () => selectOnly(state.items.filter(i => !i.done && !tagged(i)).map(i => i.id));
+  $('onlyUntagged').onchange = refreshAll; $('showDone').onchange = refreshAll;
+  $('clearDone').onclick = () => { state.completed = []; renderDone(); };
   $('apply').onclick = applyTags;
   $('clear').onclick = () => {
     for (const id of state.sel) { const it = state.items[id]; it.loc = it.subj = it.note = ''; it.status = ''; updateCard(it); }
