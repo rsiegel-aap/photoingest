@@ -1,0 +1,1056 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I.A.D. - Image Annotation Depot</title>
+<script>try{var t=localStorage.getItem('photoIngest.theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<style>
+:root{color-scheme:light dark;--bg:#f4f6f9;--panel:#fff;--text:#1d2430;--muted:#667085;--line:#d9dee7;--accent:#1f5fbf;--accent-text:#fff;--warn:#935300;--warn-bg:#fff4e0;--ok:#1b7a3d;--bad:#b42318;--sel:#dbe8ff;--chip:#eef2f7}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--panel:#1d2128;--text:#e7eaf0;--muted:#98a2b3;--line:#323946;--accent:#6aa3ff;--accent-text:#0b1220;--warn:#f2b155;--warn-bg:#33270f;--ok:#5ad08a;--bad:#ff8a80;--sel:#22344f;--chip:#2a303b}}
+:root[data-theme="light"]{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#14171c;--panel:#1d2128;--text:#e7eaf0;--muted:#98a2b3;--line:#323946;--accent:#6aa3ff;--accent-text:#0b1220;--warn:#f2b155;--warn-bg:#33270f;--ok:#5ad08a;--bad:#ff8a80;--sel:#22344f;--chip:#2a303b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0}
+header span{color:var(--muted)}
+header .theme{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);margin-top:0;margin-bottom:0}
+header .theme select{width:auto;padding:4px 6px}
+#unsupported{display:none;margin:16px 20px;padding:12px 14px;border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:8px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;padding:16px 20px;align-items:start}
+@media (max-width:980px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+aside{display:flex;flex-direction:column;gap:12px;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:980px){aside{position:static;max-height:none}}
+h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+select,input[type=text]{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);font:inherit}
+button{padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+button.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:600}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.row>select{flex:1;min-width:0}
+.hint{color:var(--muted);font-size:12px;margin-top:6px;word-break:break-word}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.toolbar .count{margin-left:auto;color:var(--muted)}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.card{position:relative;height:254px;contain:layout paint style;content-visibility:auto;contain-intrinsic-size:auto 254px;border:2px solid transparent;background:var(--bg);border-radius:8px;overflow:hidden;cursor:pointer;user-select:none;outline:1px solid var(--line)}
+.card .cb{position:absolute;top:6px;left:6px;width:20px;height:20px;margin:0;cursor:pointer;accent-color:var(--accent);z-index:1;box-shadow:0 0 0 2px var(--panel);border-radius:3px}
+.card.sel{border-color:var(--accent);background:var(--sel)}
+.card .thumb{height:110px;background:var(--chip);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;overflow:hidden}
+.card img{width:100%;height:100%;object-fit:cover;display:block}
+.card .meta{padding:6px 8px;font-size:12px;height:140px;overflow:hidden}
+.card .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:17px;line-height:17px}
+.card .dt{color:var(--muted);height:34px;line-height:17px;overflow:hidden}
+.card .dt.fallback{color:var(--warn)}
+.card .tg{margin-top:3px;height:56px;line-height:18px;overflow:hidden}
+.card .chip{padding:0 6px;line-height:16px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top}
+.chip{display:inline-block;padding:1px 6px;border-radius:10px;background:var(--chip);font-size:11px;margin:1px 2px 1px 0}
+.chip.none{color:var(--warn)}
+.card .st{font-size:11px;height:16px;line-height:16px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}
+.empty{padding:40px 10px;text-align:center;color:var(--muted)}
+.plan{font-size:12px}
+.plan div{padding:2px 0;word-break:break-all}
+details{margin-top:8px}
+details pre{margin:6px 0 0;max-height:200px;overflow:auto;font-size:11px;white-space:pre-wrap;word-break:break-all;background:var(--bg);padding:8px;border-radius:6px}
+progress{width:100%;height:8px;margin-top:8px}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);max-width:520px;width:calc(100% - 32px);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.card .zoom{position:absolute;top:6px;right:6px;width:28px;height:28px;padding:0;line-height:1;font-size:16px;border-radius:6px;opacity:.9;z-index:1}
+.card .zoom:hover,.card .zoom:focus-visible{opacity:1;border-color:var(--accent)}
+#noDest{margin-top:10px;padding:8px 10px;border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;font-weight:700}
+#pv{max-width:none;width:min(96vw,1300px);height:92vh;padding:12px}
+#pv[open]{display:flex;flex-direction:column;gap:8px}
+#pv .top{display:flex;gap:10px;align-items:baseline;justify-content:space-between}
+#pv .ttl{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pv .sub{color:var(--muted);font-size:12px}
+#pv .stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:var(--chip);border-radius:8px;overflow:hidden;color:var(--muted)}
+#pv .stage img,#pv .stage video{max-width:100%;max-height:100%;object-fit:contain}
+#pv .bar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#pv .bar label{margin:0;display:flex;gap:6px;align-items:center}
+dialog h3{margin:0 0 8px;font-size:16px}
+dialog .body{white-space:pre-wrap;margin-bottom:12px;max-height:50vh;overflow:auto}
+dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>I.A.D. - Image Annotation Depot</h1>
+  <span>Tag site photos with a location and subject, then copy them into dated, location-based folders. Runs in this browser tab; nothing is uploaded.</span>
+  <label class="theme">Theme <select id="theme" aria-label="Colour theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+</header>
+<div id="unsupported">This browser can't open local folders for writing. Use Microsoft Edge or Google Chrome on a computer.</div>
+
+<main>
+  <section class="panel">
+    <div class="toolbar">
+      <button id="selAll" disabled>Select all</button>
+      <button id="selNone" disabled>Select none</button>
+      <button id="selUntagged" disabled>Select untagged</button>
+      <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="onlyUntagged"> Show untagged only</label>
+      <span class="count" id="count"></span>
+    </div>
+    <div id="grid"><div class="empty">Choose a source folder to load photos.<br>Click to select a photo, Ctrl/Cmd-click to add, Shift-click for a range.</div></div>
+  </section>
+
+  <aside>
+    <div class="panel">
+      <h2>1. Project</h2>
+      <select id="project"></select>
+      <div class="row" style="margin-top:8px">
+        <button id="loadXlsx">Load config workbook…</button>
+        <button id="reloadXlsx" disabled>Reload</button>
+        <button id="resumeCfg" class="primary" hidden></button>
+        <button id="loadCfg" title="Older option: a folder with projects.csv, locations.csv and subjects.csv">CSV folder…</button>
+      </div>
+      <input type="file" id="xlsxFile" accept=".xlsx" hidden>
+      <div class="hint" id="cfgInfo"></div>
+      <div class="hint" id="cfgWarn" style="color:var(--warn,#b45309)"></div>
+    </div>
+
+    <div class="panel">
+      <h2>2. Source and destination</h2>
+      <button id="pickSrc">Choose source folder…</button>
+      <label style="display:inline-flex;gap:6px;align-items:center;margin-left:8px"><input type="checkbox" id="recursive"> Include subfolders</label>
+      <div class="hint" id="srcInfo">No source folder chosen.</div>
+      <div style="margin-top:10px"><button id="pickDst">Choose destination (Photos) folder…</button></div>
+      <div class="hint" id="dstInfo">No destination chosen. Pick the OneDrive-synced SharePoint Photos folder.</div>
+    </div>
+
+    <div class="panel">
+      <h2>3. Tag selected photos</h2>
+      <label>Location</label>
+      <div class="row"><select id="loc"></select><button id="newLoc" title="Add a new location">+ New</button></div>
+      <label>Subject</label>
+      <div class="row"><select id="subj"></select><button id="newSubj" title="Add a new subject">+ New</button></div>
+      <label>Note (optional)</label>
+      <input type="text" id="note" maxlength="60" placeholder="e.g. Belt 3 jam">
+      <div class="row" style="margin-top:10px">
+        <button id="apply" class="primary" disabled>Apply to selected</button>
+        <button id="clear" disabled>Clear tags</button>
+      </div>
+      <label style="display:flex;gap:6px;align-items:center;margin-top:10px"><input type="checkbox" id="autoClear" checked> Uncheck photos after applying</label>
+      <div class="hint" id="selInfo">0 selected</div>
+      <div class="hint">Tip: tick the photos that share details, apply, then tick a single photo to adjust it on its own.</div>
+    </div>
+
+    <div class="panel">
+      <h2>4. Review and copy</h2>
+      <div id="summary" class="hint">Nothing to copy yet.</div>
+      <div class="plan" id="plan"></div>
+      <details id="allNames" hidden><summary>All new file names</summary><pre id="names"></pre></details>
+      <label style="display:flex;gap:6px;align-items:center;margin-top:10px;color:var(--text)"><input type="checkbox" id="fastVerify"> Fast verify (quicker, less thorough)</label>
+      <div class="hint">Checks each copy by file size plus sample bytes from the start, middle and end, instead of a full checksum. It can miss damage in the parts that aren't sampled. Leave it off if you want the strongest check.</div>
+      <div id="noDest" role="alert">No destination folder has been set. Choose one in step 2 before copying.</div>
+      <div class="row" style="margin-top:10px"><button id="copy" class="primary" disabled>Copy to destination</button></div>
+      <progress id="prog" value="0" max="1" hidden></progress>
+      <div class="hint">Originals are never changed. The browser can't show the full local path of the destination, so keep that folder's path short (SharePoint and Windows both limit total path length).</div>
+    </div>
+  </aside>
+</main>
+
+<dialog id="pv" aria-label="Photo preview" tabindex="-1">
+  <div class="top"><div><div class="ttl" id="pvName"></div><div class="sub" id="pvInfo"></div></div><button id="pvClose">Close</button></div>
+  <div class="stage" id="pvStage"></div>
+  <div class="bar"><button id="pvPrev">&larr; Previous</button>
+    <label><input type="checkbox" id="pvSel"> Selected for tagging <span class="sub">(Space)</span></label>
+    <span class="sub" id="pvPos"></span><button id="pvNext">Next &rarr;</button></div>
+</dialog>
+<dialog id="dlg"><h3 id="dlgTitle"></h3><div class="body" id="dlgBody"></div><div id="dlgFields"></div><div class="actions"><button id="dlgCancel">Cancel</button><button id="dlgOk" class="primary">OK</button></div></dialog>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------- constants
+const IMAGE_EXT = new Set(['.jpg','.jpeg','.png','.heic','.heif','.tif','.tiff','.webp','.bmp']);
+const VIDEO_EXT = new Set(['.mp4','.mov']);
+const HASH_MAX = 100 * 1024 * 1024;       // files above this are verified by size only
+const REL_PATH_WARN = 140;                // warn when the path below the destination gets this long
+const SUBTLE = (globalThis.crypto && crypto.subtle) || null;
+const THUMB_W = 320, THUMB_CONC = 3;      // thumbnail width and how many decode at once
+const LOAD_CONC = 8, COPY_CONC = 3;       // files read / copied at once
+const SAMPLE = 64 * 1024;                 // bytes sampled from start, middle and end in fast verify
+const PLAN_DELAY = 80;                    // ms to wait before recalculating planned names
+const thumbQueue = []; let thumbActive = 0;
+
+const SAMPLE_CONFIG = {
+  projects: [
+    {project_code:'PROJ1', project_name:'Sample Project One', active:'Y'},
+    {project_code:'PROJ2', project_name:'Sample Project Two', active:'Y'}],
+  locations: [
+    {project_code:'PROJ1', location_code:'T1-L1-GateA1', location_name:'Terminal 1 Level 1 Gate A1', active:'Y'},
+    {project_code:'PROJ1', location_code:'T1-L1-GateA2', location_name:'Terminal 1 Level 1 Gate A2', active:'Y'},
+    {project_code:'PROJ1', location_code:'T1-L2-BagMakeup', location_name:'Terminal 1 Level 2 Baggage Make-up', active:'Y'},
+    {project_code:'PROJ1', location_code:'T2-L1-GateB12', location_name:'Terminal 2 Level 1 Gate B12', active:'Y'},
+    {project_code:'PROJ2', location_code:'CONC-C-L1', location_name:'Concourse C Level 1', active:'Y'},
+    {project_code:'PROJ2', location_code:'CONC-C-L2', location_name:'Concourse C Level 2', active:'Y'},
+    {project_code:'PROJ2', location_code:'BHS-OUTBOUND', location_name:'Outbound Baggage Handling Area', active:'Y'}],
+  subjects: [
+    {subject_code:'BaggageBelt', subject_name:'Baggage belt / conveyor', active:'Y'},
+    {subject_code:'Signage', subject_name:'Signage and wayfinding', active:'Y'},
+    {subject_code:'Damage', subject_name:'Damage or defect', active:'Y'},
+    {subject_code:'Structural', subject_name:'Structural elements', active:'Y'},
+    {subject_code:'MEP', subject_name:'Mechanical / electrical / plumbing', active:'Y'},
+    {subject_code:'Equipment', subject_name:'Equipment', active:'Y'},
+    {subject_code:'Overview', subject_name:'General overview', active:'Y'}]
+};
+
+// -------------------------------------------------------------------- state
+const state = {
+  cfg: {...structuredClone(SAMPLE_CONFIG), dir: null, label: 'built-in sample list'},
+  src: null, dest: null, items: [], sel: new Set(), last: null, busy: false, loading: false, gen: 0, plan: []
+};
+const cache = new Map();   // existing-name cache for destination folders
+const $ = id => document.getElementById(id);
+
+// ------------------------------------------------------------------ helpers
+const clean = (t, max = 40) => {
+  const s = (t || '').trim().replace(/[\s_]+/g, '-').replace(/[^A-Za-z0-9-]/g, '')
+    .replace(/-{2,}/g, '-').replace(/^-+|-+$/g, '');
+  return s.slice(0, max).replace(/-+$/, '');
+};
+const extOf = n => { const i = n.lastIndexOf('.'); return i < 0 ? '' : n.slice(i).toLowerCase(); };
+const pad = (n, w = 2) => String(n).padStart(w, '0');
+const dayKey = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const isActive = r => !['N','NO','0','FALSE'].includes((r.active || 'Y').trim().toUpperCase());
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e) { return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e) {} }
+};
+
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i+1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i+1] === '\n') i++; row.push(cur); cur = ''; rows.push(row); row = []; }
+    else cur += c;
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  const hdr = (rows.shift() || []).map(h => h.trim().toLowerCase());
+  return rows.filter(r => r.some(v => v.trim() !== ''))
+    .map(r => Object.fromEntries(hdr.map((h, i) => [h, (r[i] || '').trim()])));
+}
+const csvLine = vals => vals.map(v => /[",\n\r]/.test(v) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v)).join(',');
+
+// -------------------------------------------------------------- modal dialog
+const dlg = $('dlg');
+function modal({title, body = '', fields = [], ok = 'OK', cancel = 'Cancel'}) {
+  return new Promise(resolve => {
+    $('dlgTitle').textContent = title;
+    $('dlgBody').textContent = body;
+    $('dlgFields').innerHTML = fields.map((f, i) =>
+      `<label>${esc(f.label)}</label><input type="text" id="dlgf${i}" placeholder="${esc(f.placeholder || '')}">`).join('');
+    $('dlgOk').textContent = ok;
+    $('dlgCancel').textContent = cancel;
+    $('dlgCancel').hidden = cancel === null;
+    const done = v => { dlg.close(); $('dlgOk').onclick = $('dlgCancel').onclick = null; resolve(v); };
+    $('dlgOk').onclick = () => done(fields.length ? fields.map((_, i) => $('dlgf' + i).value) : true);
+    $('dlgCancel').onclick = () => done(fields.length ? null : false);
+    dlg.oncancel = e => { e.preventDefault(); $('dlgCancel').onclick(); };
+    dlg.showModal();
+    if (fields.length) $('dlgf0').focus();
+  });
+}
+
+// -------------------------------------------------------------- EXIF (JPEG)
+async function readExifDate(file) {
+  try {
+    const v = new DataView(await file.slice(0, 262144).arrayBuffer());
+    if (v.getUint16(0) !== 0xFFD8) return null;
+    let off = 2;
+    while (off + 4 < v.byteLength) {
+      const marker = v.getUint16(off), len = v.getUint16(off + 2);
+      if (marker === 0xFFDA || (marker & 0xFF00) !== 0xFF00) break;
+      if (marker === 0xFFE1 && v.getUint32(off + 4) === 0x45786966) return parseTiffDate(v, off + 10);
+      off += 2 + len;
+    }
+  } catch (e) { /* fall through */ }
+  return null;
+}
+function parseTiffDate(v, base) {
+  const little = v.getUint16(base) === 0x4949;
+  const u16 = o => v.getUint16(o, little), u32 = o => v.getUint32(o, little);
+  const readIfd = start => {
+    const n = u16(start), out = {};
+    for (let i = 0; i < n; i++) { const e = start + 2 + i * 12; out[u16(e)] = {count: u32(e + 4), valOff: e + 8}; }
+    return out;
+  };
+  const str = ent => {
+    const o = ent.count > 4 ? base + u32(ent.valOff) : ent.valOff; let s = '';
+    for (let i = 0; i < ent.count - 1; i++) s += String.fromCharCode(v.getUint8(o + i));
+    return s;
+  };
+  const i0 = readIfd(base + u32(base + 4));
+  let s = null;
+  if (i0[0x8769]) { const ex = readIfd(base + u32(i0[0x8769].valOff)); const e = ex[0x9003] || ex[0x9004]; if (e) s = str(e); }
+  if (!s && i0[0x0132]) s = str(i0[0x0132]);
+  const m = s && s.match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+  return d.getFullYear() > 1990 ? d : null;
+}
+
+// ------------------------------------------------------------- config (CSV)
+const activeProjects = () => state.cfg.projects.filter(isActive);
+const curProject = () => $('project').value;
+const locsFor = p => state.cfg.locations.filter(r => isActive(r) && r.project_code.toLowerCase() === p.toLowerCase());
+const subjects = () => state.cfg.subjects.filter(isActive);
+
+async function readCfgFile(dir, name) {
+  const h = await dir.getFileHandle(name);
+  return parseCSV(await (await h.getFile()).text());
+}
+async function loadConfigFrom(dir) {
+  const [projects, locations, subjects] = await Promise.all(
+    ['projects.csv', 'locations.csv', 'subjects.csv'].map(n => readCfgFile(dir, n)));
+  if (!projects.some(isActive)) throw new Error('projects.csv has no active projects.');
+  Object.assign(state.cfg, {projects, locations, subjects, dir, wb: null, warn: [], label: `folder "${dir.name}" (edits are saved to its CSV files)`});
+}
+// ---- remembered workbook: where the page is hosted, and the file picked last time on this computer
+const CONFIG_URL = 'Config Files/iad_config.xlsx';          // relative to this page; works when the page is served over http(s)
+const idb = (mode, fn) => new Promise(res => {
+  try {
+    const rq = indexedDB.open('iad', 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+    rq.onerror = () => res(null);
+    rq.onsuccess = () => { try { const tx = rq.result.transaction('kv', mode), r = fn(tx.objectStore('kv'));
+      tx.oncomplete = () => res(r && 'result' in r ? r.result : null); tx.onerror = tx.onabort = () => res(null); } catch (e) { res(null); } };
+  } catch (e) { res(null); }
+});
+const rememberHandle = h => h && idb('readwrite', st => st.put(h, 'workbook'));
+const recallHandle = () => idb('readonly', st => st.get('workbook'));
+
+// ---- workbook (.xlsx) reader: minimal zip + XML, no libraries, nothing leaves the computer
+async function unzip(buf) {
+  const v = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder();
+  let e = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) if (v.getUint32(i, true) === 0x06054b50) { e = i; break; }
+  if (e < 0) throw new Error('This is not a valid .xlsx workbook.');
+  const n = v.getUint16(e + 10, true); let p = v.getUint32(e + 16, true); const files = {};
+  for (let i = 0; i < n; i++) {
+    if (v.getUint32(p, true) !== 0x02014b50) throw new Error('The workbook file is damaged.');
+    const nl = v.getUint16(p + 28, true), xl = v.getUint16(p + 30, true), cl = v.getUint16(p + 32, true);
+    files[dec.decode(u8.subarray(p + 46, p + 46 + nl))] = {method: v.getUint16(p + 10, true), csize: v.getUint32(p + 20, true), off: v.getUint32(p + 42, true)};
+    p += 46 + nl + xl + cl;
+  }
+  return {async read(name) {
+    const f = files[name]; if (!f) return null;
+    const s = f.off + 30 + v.getUint16(f.off + 26, true) + v.getUint16(f.off + 28, true), data = u8.subarray(s, s + f.csize);
+    if (f.method === 0) return dec.decode(data);
+    if (f.method !== 8) throw new Error('Unsupported compression in workbook.');
+    return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  }};
+}
+const xml = t => new DOMParser().parseFromString(t, 'application/xml');
+const colIdx = ref => { let n = 0; for (const ch of ref.replace(/[^A-Z]/gi, '').toUpperCase()) n = n * 26 + ch.charCodeAt(0) - 64; return n - 1; };
+function sheetRows(doc, sst, tally) {
+  const rows = [];
+  for (const r of doc.getElementsByTagName('row')) {
+    const row = [];
+    for (const c of r.getElementsByTagName('c')) {
+      const t = c.getAttribute('t'), vEl = c.getElementsByTagName('v')[0];
+      let val = '';
+      if (t === 'inlineStr') val = [...c.getElementsByTagName('t')].map(x => x.textContent).join('');
+      else if (vEl) { val = vEl.textContent; if (t === 's') val = sst[+val] ?? ''; else if (t === 'b') val = val === '1' ? 'TRUE' : 'FALSE'; }
+      if (!t && !val && c.getElementsByTagName('f').length) tally.noCache++;   // formula with no stored result
+      row[colIdx(c.getAttribute('r') || '')] = val;
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+function rowsToObjects(rows, need, sheet) {
+  const hi = rows.findIndex(r => r.some(x => String(x ?? '').trim() !== ''));
+  const head = hi < 0 ? [] : rows[hi].map(x => String(x ?? '').trim().toLowerCase());
+  for (const k of need) if (!head.includes(k)) throw new Error(`Sheet "${sheet}" is missing the column "${k}". Do not rename the output sheets or their headings.`);
+  const out = [];
+  for (const r of rows.slice(hi + 1)) {
+    const o = {}; head.forEach((h, i) => { if (h) o[h] = String(r[i] ?? '').trim(); });
+    if (Object.values(o).some(x => x !== '')) out.push(o);
+  }
+  return out;
+}
+async function readWorkbook(file) {
+  const z = await unzip(await file.arrayBuffer());
+  const wbXml = await z.read('xl/workbook.xml'); if (!wbXml) throw new Error('This is not an Excel workbook.');
+  const rels = {}; for (const r of xml(await z.read('xl/_rels/workbook.xml.rels')).getElementsByTagName('Relationship')) rels[r.getAttribute('Id')] = r.getAttribute('Target');
+  const sheets = {}; for (const s of xml(wbXml).getElementsByTagName('sheet')) {
+    const rid = s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id') || s.getAttribute('r:id');
+    let t = rels[rid] || ''; t = t.replace(/^\//, ''); sheets[s.getAttribute('name').trim().toLowerCase()] = t.startsWith('xl/') ? t : 'xl/' + t;
+  }
+  const sstXml = await z.read('xl/sharedStrings.xml'), sst = [];
+  if (sstXml) for (const si of xml(sstXml).getElementsByTagName('si')) sst.push([...si.getElementsByTagName('t')].map(x => x.textContent).join(''));
+  const tally = {noCache: 0}, get = async (name, need) => {
+    const path = sheets[name.toLowerCase()];
+    if (!path) throw new Error(`The workbook has no sheet named "${name}". Use the I.A.D. configuration workbook template.`);
+    return rowsToObjects(sheetRows(xml(await z.read(path)), sst, tally), need, name);
+  };
+  const raw = {projects: await get('Projects', ['project_code', 'project_name', 'active']),
+    locations: await get('Locations', ['project_code', 'location_code', 'location_name', 'active']),
+    subjects: await get('Subjects', ['subject_code', 'subject_name', 'active'])};
+  const warn = [], seen = new Set();
+  const projects = [], locations = [], subjects = [];
+  for (const r of raw.projects) {
+    const code = clean(r.project_code); if (!code) { warn.push('A project row without a usable code was skipped.'); continue; }
+    if (code !== r.project_code.trim()) warn.push(`Project code "${r.project_code}" was adjusted to "${code}".`);
+    if (seen.has(code.toLowerCase())) { warn.push(`Duplicate project "${code}" skipped.`); continue; }
+    seen.add(code.toLowerCase()); projects.push({project_code: code, project_name: r.project_name, active: r.active || 'Y'});
+  }
+  const lseen = new Set();
+  for (const r of raw.locations) {
+    const pc = projects.find(p => p.project_code.toLowerCase() === clean(r.project_code).toLowerCase());
+    const code = clean(r.location_code);
+    if (!pc || !code) { warn.push(`Location "${r.location_code}" skipped (${pc ? 'no usable code' : 'unknown project "' + r.project_code + '"'}).`); continue; }
+    if (code !== r.location_code.trim()) warn.push(`Location code "${r.location_code}" was adjusted to "${code}".`);
+    const key = pc.project_code.toLowerCase() + '|' + code.toLowerCase();
+    if (lseen.has(key)) { warn.push(`Duplicate location "${code}" in ${pc.project_code} skipped.`); continue; }
+    lseen.add(key); locations.push({project_code: pc.project_code, location_code: code, location_name: r.location_name, active: r.active || 'Y'});
+  }
+  const sseen = new Set();
+  for (const r of raw.subjects) {
+    const code = clean(r.subject_code); if (!code) { warn.push('A subject row without a usable code was skipped.'); continue; }
+    if (code !== r.subject_code.trim()) warn.push(`Subject code "${r.subject_code}" was adjusted to "${code}".`);
+    if (sseen.has(code.toLowerCase())) { warn.push(`Duplicate subject "${code}" skipped.`); continue; }
+    sseen.add(code.toLowerCase()); subjects.push({subject_code: code, subject_name: r.subject_name, active: r.active || 'Y'});
+  }
+  if (!projects.some(isActive)) {
+    throw new Error(tally.noCache
+      ? 'The workbook has formulas but no stored results. Open it in Excel, save it once, then load it again.'
+      : 'The workbook has no active projects. Add one on the Ingest sheet and make sure its status says OK.');
+  }
+  return {projects, locations, subjects, warn};
+}
+async function loadWorkbook(file, handle, keepAdds) {
+  const r = await readWorkbook(file);
+  const adds = (keepAdds && state.cfg.added) || {locations: [], subjects: []};
+  for (const l of adds.locations) if (!r.locations.some(x => x.project_code.toLowerCase() === l.project_code.toLowerCase() && x.location_code.toLowerCase() === l.location_code.toLowerCase())) r.locations.push(l);
+  for (const s of adds.subjects) if (!r.subjects.some(x => x.subject_code.toLowerCase() === s.subject_code.toLowerCase())) r.subjects.push(s);
+  const t = new Date();
+  Object.assign(state.cfg, {projects: r.projects, locations: r.locations, subjects: r.subjects, dir: null, added: adds, warn: r.warn,
+    wb: {handle, name: file.name}, label: `workbook "${file.name}" (loaded ${pad(t.getHours())}:${pad(t.getMinutes())})`});
+}
+async function appendCfgRow(fileName, fields, row) {
+  const dir = state.cfg.dir;
+  const fh = await dir.getFileHandle(fileName);
+  const text = await (await fh.getFile()).text();
+  const bdir = await dir.getDirectoryHandle('backups', {create: true});
+  const d = new Date();
+  const stamp = `${dayKey(d)}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const bh = await bdir.getFileHandle(`${fileName.replace(/\.csv$/, '')}_${stamp}.csv.bak`, {create: true});
+  let w = await bh.createWritable(); await w.write(text); await w.close();
+  w = await fh.createWritable();
+  await w.write(text + (text === '' || text.endsWith('\n') ? '' : '\n') + csvLine(fields.map(f => row[f])) + '\n');
+  await w.close();
+}
+function refreshCfgUI(keepProject) {
+  const prev = keepProject || store.get('photoIngest.project');
+  $('project').innerHTML = activeProjects().map(p =>
+    `<option value="${esc(p.project_code)}">${esc(p.project_code)} - ${esc(p.project_name || '')}</option>`).join('');
+  if (prev && [...$('project').options].some(o => o.value === prev)) $('project').value = prev;
+  $('cfgInfo').textContent = `Using ${state.cfg.label}.` + (state.cfg.dir ? '' : state.cfg.wb ?
+    ' Locations or subjects added with "+ New" last until you close this tab. To keep them, add them on the workbook\'s Ingest sheet, save, then click Reload.' :
+    ' New locations/subjects you add last until you close this tab. Click \"Load config workbook\" to use the shared list (the page remembers it next time).');
+  const w = state.cfg.warn || [];
+  $('cfgWarn').textContent = w.length ? `${w.length} item(s) need attention in the workbook: ` + w.slice(0, 3).join(' ') + (w.length > 3 ? ' …' : '') : '';
+  $('reloadXlsx').disabled = !state.cfg.wb;
+  refreshTagLists();
+}
+function refreshTagLists(selectLoc, selectSubj) {
+  const pl = locsFor(curProject());
+  $('loc').innerHTML = '<option value="">Choose location…</option>' +
+    pl.map(r => `<option value="${esc(r.location_code)}">${esc(r.location_code)} - ${esc(r.location_name || '')}</option>`).join('');
+  $('subj').innerHTML = '<option value="">Choose subject…</option>' +
+    subjects().map(r => `<option value="${esc(r.subject_code)}">${esc(r.subject_code)} - ${esc(r.subject_name || '')}</option>`).join('');
+  if (selectLoc) $('loc').value = selectLoc;
+  if (selectSubj) $('subj').value = selectSubj;
+}
+
+// -------------------------------------------------------------- folder scan
+async function pickDir(opts) {
+  try { return await window.showDirectoryPicker(opts); }
+  catch (e) {
+    if (e && e.name === 'AbortError') return null;
+    await modal({title: 'Could not open folder', body: `${e.message || e}\n\nThe browser may refuse some system folders (for example a top-level Downloads or Documents folder). Pick a subfolder instead.`, ok: 'OK', cancel: null});
+    return null;
+  }
+}
+async function* walk(dir, recursive, prefix = '') {
+  for await (const [name, h] of dir.entries()) {
+    if (name.startsWith('.') || name.startsWith('_')) continue;
+    if (h.kind === 'directory') { if (recursive) yield* walk(h, true, prefix + name + '/'); }
+    else if (IMAGE_EXT.has(extOf(name)) || VIDEO_EXT.has(extOf(name))) yield {name, rel: prefix + name, h};
+  }
+}
+async function loadSource(dir) {
+  const gen = ++state.gen;
+  state.loading = true;
+  $('srcInfo').textContent = 'Listing files…';
+  io.disconnect(); thumbQueue.length = 0;
+  state.items.forEach(i => i.thumb && URL.revokeObjectURL(i.thumb));
+  const found = [];
+  for await (const f of walk(dir, $('recursive').checked)) found.push(f);
+  if (gen !== state.gen) return;
+  found.sort((a, b) => a.rel.toLowerCase().localeCompare(b.rel.toLowerCase()));
+  state.items = found.map((f, i) => ({
+    id: i, name: f.name, rel: f.rel, handle: f.h, file: null, taken: null, dateSrc: '', ready: false,
+    loc: '', subj: '', note: '', status: '', thumb: null, thumbBusy: false, visible: false,
+    video: VIDEO_EXT.has(extOf(f.name))}));
+  state.src = dir; state.sel.clear(); state.last = null; state.plan = [];
+  buildGrid();
+  updateSummary(); updateSelInfo(); updateButtons();
+  const total = state.items.length;
+  if (!total) { state.loading = false; $('srcInfo').textContent = `${dir.name}: no photo/video files found.`; return; }
+
+  // Read file metadata and EXIF dates several at a time; cards are already on screen.
+  let next = 0, done = 0;
+  const worker = async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= total || gen !== state.gen) return;
+      const it = state.items[i];
+      try {
+        it.file = await it.handle.getFile();
+        const exif = IMAGE_EXT.has(extOf(it.name)) ? await readExifDate(it.file) : null;
+        it.taken = exif || new Date(it.file.lastModified);
+        it.dateSrc = exif ? 'Camera' : 'File date';
+        it.ready = true;
+      } catch (e) { it.status = 'FAILED: could not read file'; }
+      markDirty(it);
+      if (it.ready && it.visible && !it.video) { thumbQueue.push(it); pumpThumbs(); }
+      if (++done % 10 === 0 || done === total) $('srcInfo').textContent = done < total ? `${dir.name}: reading ${done}/${total}…` : '';
+    }
+  };
+  await Promise.all(Array.from({length: LOAD_CONC}, worker));
+  if (gen !== state.gen) return;
+  state.loading = false;
+  $('srcInfo').textContent = `${dir.name}: ${total} photo/video files found.`;
+  updateSummary(); updateButtons(); schedulePlan();
+}
+
+// --------------------------------------------------------------------- grid
+const cards = new Map();
+const io = new IntersectionObserver(entries => {
+  for (const e of entries) {
+    const it = state.items[+e.target.dataset.id];
+    if (!it) continue;
+    it.visible = e.isIntersecting;
+    if (e.isIntersecting && it.ready && !it.thumb && !it.thumbBusy && !it.video && !it.thumbFailed) thumbQueue.push(it);
+  }
+  pumpThumbs();
+}, {rootMargin: '400px'});
+
+function cardHTML(it) {
+  return `<div class="card" data-id="${it.id}"><input type="checkbox" class="cb" aria-label="Select ${esc(it.name)}"><div class="thumb">${it.video ? 'VIDEO' : ''}</div><button type="button" class="zoom" title="Preview larger" aria-label="Preview ${esc(it.name)}">&#x2922;</button><div class="meta"><div class="nm" title="${esc(it.rel)}">${esc(it.name)}</div><div class="dt">Reading…</div><div class="tg"><span class="chip none">not tagged</span></div><div class="st"></div></div></div>`;
+}
+function buildGrid() {
+  const g = $('grid'); cards.clear();
+  if (!state.items.length) { g.innerHTML = '<div class="empty">No supported photo or video files found in that folder.</div>'; return; }
+  g.innerHTML = state.items.map(cardHTML).join('');
+  for (const c of g.children) { cards.set(+c.dataset.id, c); io.observe(c); }
+}
+// One set of listeners for the whole grid. A mouse selects on press (instant feedback);
+// touch, pen and keyboard select on click.
+let pressed = {id: -1, t: 0};
+function wireGrid() {
+  const g = $('grid');
+  const itemOf = e => { const c = e.target.closest && e.target.closest('.card'); return c ? state.items[+c.dataset.id] : null; };
+  g.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    if (e.target.closest('.zoom')) return;
+    const it = itemOf(e); if (!it) return;
+    pressed = {id: it.id, t: performance.now()};
+    if (e.target.classList.contains('cb')) e.preventDefault();      // we set the box ourselves
+    toggleSelect(e, it, !state.sel.has(it.id));
+  });
+  g.addEventListener('click', e => {
+    const it = itemOf(e); if (!it) return;
+    if (e.target.closest('.zoom')) { openPreview(it.id); return; }
+    const isCb = e.target.classList.contains('cb');
+    if (pressed.id === it.id && performance.now() - pressed.t < 1500) {   // already handled on press
+      pressed = {id: -1, t: 0};
+      if (isCb) e.preventDefault();                                        // keep the box as we set it
+      return;
+    }
+    toggleSelect(e, it, isCb ? e.target.checked : !state.sel.has(it.id));
+  });
+}
+
+// Card refreshes while a folder loads are batched into short slices so clicks are never starved.
+const dirty = new Set(); let dirtyRaf = 0;
+function markDirty(it) { dirty.add(it); if (!dirtyRaf) dirtyRaf = requestAnimationFrame(flushDirty); }
+function flushDirty() {
+  dirtyRaf = 0; const t = performance.now();
+  for (const it of dirty) { dirty.delete(it); updateCard(it); if (performance.now() - t > 6) break; }
+  if (dirty.size) dirtyRaf = requestAnimationFrame(flushDirty);
+}
+
+// Thumbnails: only for cards on screen (plus a margin), a few at a time, decoded straight to a small size.
+function pumpThumbs() {
+  while (thumbActive < THUMB_CONC && thumbQueue.length) {
+    const it = thumbQueue.pop();                       // most recently scrolled into view first
+    if (!it.visible || it.thumb || it.thumbBusy || !it.file) continue;
+    thumbActive++; it.thumbBusy = true;
+    makeThumb(it).finally(() => { thumbActive--; it.thumbBusy = false; pumpThumbs(); });
+  }
+}
+async function makeThumb(it) {
+  const el = cards.get(it.id)?.querySelector('.thumb');
+  try {
+    const bmp = await createImageBitmap(it.file, {resizeWidth: THUMB_W, resizeQuality: 'low', imageOrientation: 'from-image'});
+    const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    c.getContext('2d').drawImage(bmp, 0, 0); bmp.close();
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.75));
+    it.thumb = URL.createObjectURL(blob);
+    const img = new Image(); img.alt = ''; img.src = it.thumb;
+    if (el) el.replaceChildren(img);
+  } catch (e) {
+    it.thumbFailed = true;
+    if (el) el.textContent = 'No preview';
+  }
+}
+
+// Selection: checking a box (or clicking a photo) adds/removes just that photo.
+// Shift extends a range from the last photo you clicked. Only the cards that change are touched.
+function setSelected(id, on) {
+  if (on === state.sel.has(id)) return;
+  on ? state.sel.add(id) : state.sel.delete(id);
+  updateSelState(state.items[id]);
+}
+function toggleSelect(e, it, on) {
+  if (e.shiftKey && state.last !== null) {
+    const [a, b] = [state.last, it.id].sort((x, y) => x - y);
+    for (let i = a; i <= b; i++) setSelected(i, on);
+  } else setSelected(it.id, on);
+  state.last = it.id;
+  syncFormFromSelection();
+  updateSelInfo(); updateButtons();
+}
+function selectOnly(ids) {
+  for (const id of [...state.sel]) setSelected(id, false);
+  for (const id of ids) setSelected(id, true);
+  state.last = null;
+  updateSelInfo(); updateButtons();
+}
+// With exactly one tagged photo selected, show its current tags so you can adjust just that one.
+function syncFormFromSelection() {
+  if (state.sel.size !== 1) return;
+  const it = state.items[[...state.sel][0]];
+  if (!tagged(it)) return;
+  $('loc').value = it.loc; $('subj').value = it.subj; $('note').value = it.note;
+}
+const tagged = it => !!(it.loc && it.subj);
+
+function updateSelState(it) {
+  const c = cards.get(it.id); if (!c) return;
+  const on = state.sel.has(it.id);
+  c.classList.toggle('sel', on);
+  c.querySelector('.cb').checked = on;
+}
+function updateStatus(it) {
+  const c = cards.get(it.id); if (!c) return;
+  const st = c.querySelector('.st');
+  st.textContent = it.status; st.title = it.status;
+  st.className = 'st ' + (it.status.startsWith('copied') || it.status.startsWith('skipped') ? 'ok' : it.status ? 'bad' : '');
+}
+function updateCard(it) {
+  const c = cards.get(it.id); if (!c) return;
+  updateSelState(it);
+  c.style.display = $('onlyUntagged').checked && tagged(it) ? 'none' : '';
+  const dt = c.querySelector('.dt');
+  dt.textContent = it.ready ? fmtDate(it.taken) + (it.dateSrc === 'Camera' ? '' : ' (file date)') : 'Reading…';
+  dt.classList.toggle('fallback', it.ready && it.dateSrc !== 'Camera');
+  c.querySelector('.tg').innerHTML = tagged(it)
+    ? `<span class="chip">${esc(it.loc)}</span><span class="chip">${esc(it.subj)}</span>` + (it.note ? `<span class="chip">${esc(clean(it.note, 30))}</span>` : '')
+    : '<span class="chip none">not tagged</span>';
+  updateStatus(it);
+}
+
+// --------------------------------------------------------------------- plan
+async function existingNames(parts) {
+  const key = parts.join('/');
+  if (cache.has(key)) return cache.get(key);
+  const names = [];
+  if (state.dest) {
+    try {
+      let d = state.dest;
+      for (const p of parts) d = await d.getDirectoryHandle(p);
+      for await (const [n, h] of d.entries()) if (h.kind === 'file') names.push(n);
+    } catch (e) { /* folder doesn't exist yet */ }
+  }
+  cache.set(key, names);
+  return names;
+}
+async function computePlan(fresh) {
+  if (fresh) cache.clear();
+  const project = curProject();
+  const list = state.items.filter(it => it.ready && tagged(it))
+    .sort((a, b) => a.taken - b.taken || a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+  const counters = new Map(), plan = [];
+  for (const it of list) {
+    const day = dayKey(it.taken);
+    const visit = `${day}_${project}_SiteVisit`;
+    const parts = [day, project, it.loc, it.subj]; const note = clean(it.note, 30);
+    if (note) parts.push(note);
+    const base = parts.join('_');
+    const key = `${visit}/${it.loc}/${base}`;
+    if (!counters.has(key)) {
+      const re = new RegExp('^' + escRe(base) + '_(\\d{3,})\\.[^.]+$'); let best = 0;
+      for (const n of await existingNames([visit, it.loc])) { const m = n.match(re); if (m) best = Math.max(best, +m[1]); }
+      counters.set(key, best + 1);
+    }
+    const seq = counters.get(key); counters.set(key, seq + 1);
+    const name = `${base}_${pad(seq, 3)}${extOf(it.name)}`;
+    plan.push({item: it, visit, loc: it.loc, name, rel: `${visit}/${it.loc}/${name}`});
+  }
+  return plan;
+}
+
+// ---------------------------------------------------------- summary / panels
+// Selection changes never trigger planning. Tag, destination, project and load changes
+// schedule one (debounced) recalculation of the planned names.
+let planTimer = null, planToken = 0;
+function schedulePlan() { clearTimeout(planTimer); planTimer = setTimeout(runPlan, PLAN_DELAY); }
+async function runPlan() {
+  const token = ++planToken;
+  const plan = await computePlan(false);
+  if (token !== planToken) return;
+  state.plan = plan;
+  const groups = new Map();
+  for (const p of plan) { const k = `${p.visit} / ${p.loc}`; groups.set(k, (groups.get(k) || 0) + 1); }
+  $('plan').innerHTML = [...groups].map(([k, n]) => `<div>${esc(k)} <span class="chip">${n}</span></div>`).join('');
+  $('names').textContent = plan.map(p => p.rel).join('\n');
+  $('allNames').hidden = !plan.length;
+  const total = state.items.length;
+  $('summary').textContent = !total ? 'Nothing to copy yet.' :
+    `${plan.length} of ${total} files will be copied` + (total - plan.length ? `; ${total - plan.length} untagged or not ready will be left out.` : '.') +
+    (state.dest ? '' : ' Choose a destination folder to enable copying.');
+  updateButtons();
+}
+function updateSummary() {
+  const total = state.items.length;
+  let nTag = 0; for (const it of state.items) if (tagged(it)) nTag++;
+  $('count').textContent = total ? `${total} files, ${nTag} tagged, ${total - nTag} untagged` : '';
+}
+function updateSelInfo() { $('selInfo').textContent = `${state.sel.size} selected`; }
+function updateButtons() {
+  const has = state.items.length > 0;
+  ['selAll', 'selNone', 'selUntagged'].forEach(id => $(id).disabled = !has);
+  $('apply').disabled = !state.sel.size; $('clear').disabled = !state.sel.size;
+  $('noDest').hidden = !!state.dest;
+  $('copy').disabled = state.busy || state.loading || !state.dest || !state.plan.length;
+}
+function refreshAll() {               // bulk changes only (project switch, filter toggle)
+  for (const it of state.items) updateCard(it);
+  updateSummary(); updateSelInfo(); updateButtons(); schedulePlan();
+}
+
+// ------------------------------------------------------------------ preview
+let pvId = -1, pvUrl = null, pvToken = 0;
+const pvList = () => state.items.filter(it => !($('onlyUntagged').checked && tagged(it)));
+function pvRelease() { if (pvUrl) { URL.revokeObjectURL(pvUrl); pvUrl = null; } }
+function showPreview(id) {
+  const it = state.items[id]; if (!it) return;
+  pvId = id; const my = ++pvToken, stage = $('pvStage');
+  pvRelease(); stage.textContent = 'Loading…';
+  $('pvName').textContent = it.name; $('pvName').title = it.rel;
+  const tags = tagged(it) ? ` | ${it.loc} / ${it.subj}${it.note ? ' / ' + clean(it.note, 30) : ''}` : ' | not tagged';
+  $('pvInfo').textContent = (it.ready ? fmtDate(it.taken) + (it.dateSrc === 'Camera' ? '' : ' (file date)') : '') + tags;
+  const list = pvList(), i = list.findIndex(x => x.id === id);
+  $('pvPos').textContent = i >= 0 ? `${i + 1} of ${list.length}` : '';
+  $('pvPrev').disabled = i <= 0; $('pvNext').disabled = i < 0 || i >= list.length - 1;
+  $('pvSel').checked = state.sel.has(id);
+  if (!it.file) { stage.textContent = 'File not available.'; return; }
+  pvUrl = URL.createObjectURL(it.file);
+  const el = document.createElement(it.video ? 'video' : 'img');
+  if (it.video) el.controls = true;
+  el.onerror = () => { if (my === pvToken) stage.textContent = 'No preview available for this file type (for example iPhone HEIC photos).'; };
+  el.onload = () => { if (my === pvToken) stage.replaceChildren(el); };
+  if (it.video) el.onloadeddata = el.onload;
+  el.src = pvUrl; el.alt = it.name;
+}
+function openPreview(id) { if (!$('pv').open) { $('pv').showModal(); $('pv').focus(); } showPreview(id); }
+function stepPreview(d) {
+  const list = pvList(), i = list.findIndex(x => x.id === pvId), n = list[i + d];
+  if (n) showPreview(n.id);
+}
+function wirePreview() {
+  const pv = $('pv');
+  $('pvClose').onclick = () => pv.close();
+  $('pvPrev').onclick = () => { stepPreview(-1); pv.focus(); }; $('pvNext').onclick = () => { stepPreview(1); pv.focus(); };
+  $('pvSel').onchange = () => { pv.focus(); const it = state.items[pvId]; if (it) toggleSelect({}, it, $('pvSel').checked); };
+  pv.addEventListener('close', () => { pvToken++; pvRelease(); $('pvStage').textContent = ''; });
+  pv.addEventListener('click', e => { if (e.target === pv) pv.close(); });
+  pv.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); stepPreview(-1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); stepPreview(1); }
+    else if (e.key === ' ' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'VIDEO') { e.preventDefault(); const it = state.items[pvId]; if (it) { toggleSelect({}, it, !state.sel.has(pvId)); $('pvSel').checked = state.sel.has(pvId); } }
+  });
+}
+
+// --------------------------------------------------------------------- copy
+async function sha256(blob) {
+  const d = await SUBTLE.digest('SHA-256', await blob.arrayBuffer());
+  return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function dirAt(root, parts) { let d = root; for (const p of parts) d = await d.getDirectoryHandle(p, {create: true}); return d; }
+async function exists(dir, name) { try { await dir.getFileHandle(name); return true; } catch (e) { return false; } }
+// Compare same-size files by sampling 64 KB from the start, middle and end (whole file if small).
+async function sameSample(a, b) {
+  if (a.size !== b.size) return false;
+  const offs = a.size <= SAMPLE * 3 ? [0] : [0, Math.floor((a.size - SAMPLE) / 2), a.size - SAMPLE];
+  for (const o of offs) {
+    const end = a.size <= SAMPLE * 3 ? a.size : o + SAMPLE;
+    const [x, y] = await Promise.all([a.slice(o, end).arrayBuffer(), b.slice(o, end).arrayBuffer()]);
+    const u = new Uint8Array(x), v = new Uint8Array(y);
+    for (let i = 0; i < u.length; i++) if (u[i] !== v[i]) return false;
+  }
+  return true;
+}
+// Existing files in a destination folder are listed once per run (name -> size).
+function folderSizes(F) {
+  return F.sizes || (F.sizes = (async () => {
+    const m = new Map();
+    for await (const [n, h] of F.dir.entries()) if (h.kind === 'file') m.set(n, (await h.getFile()).size);
+    return m;
+  })());
+}
+async function copyOne(it, p, fast) {
+  const F = p.folder;
+  try {
+    const size = it.file.size;
+    const sizes = await folderSizes(F);
+    const checksum = !fast && !!SUBTLE && size <= HASH_MAX;
+    let srcHash = null;
+    for (const [n, s] of sizes) {                               // only same-size files are looked at
+      if (s !== size) continue;
+      const f = await (await F.dir.getFileHandle(n)).getFile();
+      let same;
+      if (checksum) {
+        srcHash = srcHash || await sha256(it.file);
+        if (!F.hashes.has(n)) F.hashes.set(n, await sha256(f));
+        same = F.hashes.get(n) === srcHash;
+      } else same = await sameSample(it.file, f);
+      if (same) return {status: `skipped (identical file already present: ${n})`, hash: srcHash || ''};
+    }
+    if (await exists(F.dir, p.name)) return {status: 'FAILED: destination name already exists', hash: srcHash || ''};
+    const fh = await F.dir.getFileHandle(p.name, {create: true});
+    const w = await fh.createWritable(); await w.write(it.file); await w.close();
+    const out = await fh.getFile();
+    let ok = out.size === size;
+    if (ok && checksum) { srcHash = srcHash || await sha256(it.file); ok = (await sha256(out)) === srcHash; }
+    else if (ok) ok = await sameSample(it.file, out);
+    if (!ok) { await F.dir.removeEntry(p.name); return {status: 'FAILED: copy did not verify (removed)', hash: srcHash || ''}; }
+    sizes.set(p.name, size);
+    return {status: checksum ? 'copied' : (fast ? 'copied (fast verify)' : 'copied (sample verify, file too large to checksum)'), hash: srcHash || ''};
+  } catch (e) { return {status: 'FAILED: ' + (e.message || e), hash: ''}; }
+}
+async function appendLog(visit, rows) {
+  const dir = await dirAt(state.dest, [visit]);
+  const header = 'timestamp,source,destination,status,sha256\n';
+  let text = '';
+  try { text = await (await (await dir.getFileHandle('_ingest_log.csv')).getFile()).text(); } catch (e) { text = header; }
+  if (text && !text.endsWith('\n')) text += '\n';
+  const stamp = new Date().toISOString();
+  text += rows.map(r => csvLine([stamp, r.src, r.dest, r.status, r.hash])).join('\n') + '\n';
+  const w = await (await dir.getFileHandle('_ingest_log.csv', {create: true})).createWritable();
+  await w.write(text); await w.close();
+}
+async function doCopy() {
+  if (state.busy || state.loading) return;
+  const plan = await computePlan(true);
+  if (!plan.length) return;
+  const fast = $('fastVerify').checked;
+  const untagged = state.items.length - plan.length;
+  const fileDates = plan.filter(p => p.item.dateSrc !== 'Camera').length;
+  const visits = new Set(plan.map(p => p.visit)).size;
+  const longest = Math.max(...plan.map(p => p.rel.length));
+  let msg = `Copy ${plan.length} files into ${visits} site-visit folder(s) under "${state.dest.name}".\nOriginals are not changed or moved.`;
+  if (untagged) msg += `\n\n${untagged} untagged files will NOT be copied.`;
+  if (fileDates) msg += `\n\n${fileDates} files have no camera date, so their file date decides the date folder. Check the dates shown on those photos.`;
+  if (longest > REL_PATH_WARN) msg += `\n\nWarning: the longest path below the destination is ${longest} characters. Total path length may exceed SharePoint/Windows limits.`;
+  if (fast) msg += '\n\nFast verify is ON: copies are checked by file size and sample bytes, not a full checksum.';
+  if (!await modal({title: 'Confirm copy', body: msg, ok: 'Copy files'})) return;
+  state.busy = true; updateButtons();
+  const prog = $('prog'); prog.hidden = false; prog.max = plan.length; prog.value = 0;
+  const results = new Array(plan.length);
+  try {
+    const folders = new Map();                                   // create folders up front, list each once
+    for (const p of plan) {
+      const key = p.visit + '/' + p.loc;
+      if (!folders.has(key)) folders.set(key, {dir: await dirAt(state.dest, [p.visit, p.loc]), sizes: null, hashes: new Map()});
+      p.folder = folders.get(key);
+    }
+    const chains = new Map();                                    // same folder + same size run one after another
+    let next = 0, finished = 0;
+    const worker = async () => {
+      for (;;) {
+        const k = next++; if (k >= plan.length) return;
+        const p = plan[k], ck = `${p.visit}/${p.loc}/${p.item.file.size}`;
+        const mine = (chains.get(ck) || Promise.resolve()).then(() => copyOne(p.item, p, fast));
+        chains.set(ck, mine.catch(() => {}));
+        const r = await mine;
+        p.item.status = r.status; results[k] = {visit: p.visit, src: p.item.rel, dest: p.rel, ...r};
+        updateStatus(p.item); prog.value = ++finished;
+      }
+    };
+    await Promise.all(Array.from({length: COPY_CONC}, worker));
+    const byVisit = new Map();
+    for (const r of results) { if (!byVisit.has(r.visit)) byVisit.set(r.visit, []); byVisit.get(r.visit).push(r); }
+    let logFail = false;
+    for (const [v, rows] of byVisit) { try { await appendLog(v, rows); } catch (e) { logFail = true; } }
+    const c = results.filter(r => r.status.startsWith('copied')).length;
+    const s = results.filter(r => r.status.startsWith('skipped')).length;
+    const f = results.filter(r => r.status.startsWith('FAILED')).length;
+    state.busy = false; cache.clear(); updateButtons(); schedulePlan();
+    await modal({title: f ? 'Finished with problems' : 'Done',
+      body: `Copied: ${c}\nSkipped (already there): ${s}\nFailed: ${f}` +
+        (f ? '\n\nSee the status under each failed photo. Failed files were not copied.' : '') +
+        (logFail ? '\n\nThe log file could not be written.' : '') +
+        '\n\nLet OneDrive finish syncing before you delete anything from your phone or source folder.',
+      ok: 'OK', cancel: null});
+    window.__lastResults = results;
+  } catch (e) {
+    state.busy = false; updateButtons();
+    await modal({title: 'Copy stopped', body: `${e.message || e}\n\nFiles already copied are in the destination. Run the copy again to continue; identical files are skipped.`, ok: 'OK', cancel: null});
+  }
+}
+
+// ------------------------------------------------------------------- events
+function applyTags() {
+  const loc = $('loc').value, subj = $('subj').value;
+  if (!state.sel.size) return;
+  if (!loc || !subj) { modal({title: 'Apply tags', body: 'Choose both a location and a subject.', ok: 'OK', cancel: null}); return; }
+  const ids = [...state.sel];
+  for (const id of ids) { const it = state.items[id]; it.loc = loc; it.subj = subj; it.note = $('note').value.trim(); it.status = ''; }
+  if ($('autoClear').checked) { for (const id of ids) setSelected(id, false); state.last = null; }
+  for (const id of ids) updateCard(state.items[id]);
+  updateSummary(); updateSelInfo(); updateButtons(); schedulePlan();
+}
+async function addLocation() {
+  const v = await modal({title: 'New location', body: `Adds to project ${curProject()}. Codes use letters, numbers and hyphens only.`,
+    fields: [{label: 'Location code', placeholder: 'T2-L1-GateB12'}, {label: 'Description', placeholder: 'Terminal 2 Level 1 Gate B12'}], ok: 'Add'});
+  if (!v) return;
+  try {
+    if (state.cfg.dir) await loadConfigFrom(state.cfg.dir);        // pick up other people's edits first
+    const code = clean(v[0]);
+    if (!code) throw new Error('Location code is empty after removing invalid characters.');
+    if (locsFor(curProject()).some(r => r.location_code.toLowerCase() === code.toLowerCase())) throw new Error(`Location code "${code}" already exists for ${curProject()}.`);
+    const row = {project_code: curProject(), location_code: code, location_name: v[1].trim(), active: 'Y'};
+    if (state.cfg.dir) await appendCfgRow('locations.csv', ['project_code', 'location_code', 'location_name', 'active'], row);
+    state.cfg.locations.push(row);
+    if (!state.cfg.dir) (state.cfg.added ||= {locations: [], subjects: []}).locations.push(row);
+    refreshTagLists(code, $('subj').value);
+  } catch (e) { modal({title: 'Could not add location', body: e.message || String(e), ok: 'OK', cancel: null}); }
+}
+async function addSubject() {
+  const v = await modal({title: 'New subject', body: 'Codes use letters, numbers and hyphens only.',
+    fields: [{label: 'Subject code', placeholder: 'BaggageBelt'}, {label: 'Description'}], ok: 'Add'});
+  if (!v) return;
+  try {
+    if (state.cfg.dir) await loadConfigFrom(state.cfg.dir);
+    const code = clean(v[0]);
+    if (!code) throw new Error('Subject code is empty after removing invalid characters.');
+    if (subjects().some(r => r.subject_code.toLowerCase() === code.toLowerCase())) throw new Error(`Subject code "${code}" already exists.`);
+    const row = {subject_code: code, subject_name: v[1].trim(), active: 'Y'};
+    if (state.cfg.dir) await appendCfgRow('subjects.csv', ['subject_code', 'subject_name', 'active'], row);
+    state.cfg.subjects.push(row);
+    if (!state.cfg.dir) (state.cfg.added ||= {locations: [], subjects: []}).subjects.push(row);
+    refreshTagLists($('loc').value, code);
+  } catch (e) { modal({title: 'Could not add subject', body: e.message || String(e), ok: 'OK', cancel: null}); }
+}
+
+function applyTheme(t) {
+  const v = t === 'light' || t === 'dark' ? t : 'system';
+  if (v === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', v);
+  $('theme').value = v;
+}
+function init() {
+  wireGrid(); wirePreview();
+  updateButtons();
+  applyTheme(store.get('photoIngest.theme'));
+  $('theme').onchange = () => { store.set('photoIngest.theme', $('theme').value); applyTheme($('theme').value); };
+  if (!window.showDirectoryPicker) { $('unsupported').style.display = 'block'; ['pickSrc','pickDst','loadCfg'].forEach(id => $(id).disabled = true); }
+  refreshCfgUI();
+  $('project').onchange = () => {
+    store.set('photoIngest.project', curProject());
+    refreshTagLists();
+    const valid = new Set(locsFor(curProject()).map(r => r.location_code));
+    for (const it of state.items) if (it.loc && !valid.has(it.loc)) { it.loc = ''; }
+    refreshAll();
+  };
+  const afterCfg = () => { refreshCfgUI(curProject()); const valid = new Set(locsFor(curProject()).map(r => r.location_code));
+    for (const it of state.items) if (it.loc && !valid.has(it.loc)) it.loc = ''; refreshAll(); };
+  const wbError = e => modal({title: 'Config workbook problem', body: e.message || String(e), ok: 'OK', cancel: null});
+  $('loadXlsx').onclick = async () => {
+    if (!window.showOpenFilePicker) { $('xlsxFile').click(); return; }
+    try {
+      const [h] = await window.showOpenFilePicker({id: 'iadWorkbook', multiple: false,
+        types: [{description: 'Excel workbook', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']}}]});
+      await loadWorkbook(await h.getFile(), h, false); afterCfg(); rememberHandle(h);
+    } catch (e) { if (!e || e.name !== 'AbortError') wbError(e); }
+  };
+  $('xlsxFile').onchange = async () => {
+    const f = $('xlsxFile').files[0]; $('xlsxFile').value = ''; if (!f) return;
+    try { await loadWorkbook(f, null, false); afterCfg(); } catch (e) { wbError(e); }
+  };
+  $('reloadXlsx').onclick = async () => {
+    const w = state.cfg.wb; if (!w) return;
+    if (w.url) { try { await loadWorkbook(await fetchConfig(), null, true); state.cfg.wb.url = w.url; afterCfg(); } catch (e) { wbError(e); } return; }
+    if (!w.handle) { $('xlsxFile').click(); return; }       // no persistent handle: choose the file again
+    try { await loadWorkbook(await w.handle.getFile(), w.handle, true); afterCfg(); }
+    catch (e) { wbError(e); }
+  };
+  $('loadCfg').onclick = async () => {
+    const d = await pickDir({id: 'photoCfg', mode: 'readwrite'}); if (!d) return;
+    try { await loadConfigFrom(d); refreshCfgUI(curProject()); refreshAll(); }
+    catch (e) { modal({title: 'Config problem', body: `${e.message || e}\n\nChoose the folder containing projects.csv, locations.csv and subjects.csv.`, ok: 'OK', cancel: null}); }
+  };
+  $('pickSrc').onclick = async () => { const d = await pickDir({id: 'photoSrc', mode: 'read', startIn: 'pictures'}); if (d) await loadSource(d); };
+  $('pickDst').onclick = async () => {
+    const d = await pickDir({id: 'photoDest', mode: 'readwrite', startIn: 'documents'}); if (!d) return;
+    state.dest = d; cache.clear(); $('dstInfo').textContent = `Destination: ${d.name}`; updateButtons(); schedulePlan();
+  };
+  $('selAll').onclick = () => { state.items.forEach(i => setSelected(i.id, true)); updateSelInfo(); updateButtons(); };
+  $('selNone').onclick = () => selectOnly([]);
+  $('selUntagged').onclick = () => selectOnly(state.items.filter(i => !tagged(i)).map(i => i.id));
+  $('onlyUntagged').onchange = refreshAll;
+  $('apply').onclick = applyTags;
+  $('clear').onclick = () => {
+    for (const id of state.sel) { const it = state.items[id]; it.loc = it.subj = it.note = ''; it.status = ''; updateCard(it); }
+    updateSummary(); schedulePlan();
+  };
+  $('newLoc').onclick = addLocation; $('newSubj').onclick = addSubject;
+  $('copy').onclick = doCopy;
+
+  // Open with the shared config already loaded.
+  async function fetchConfig() { const r = await fetch(CONFIG_URL, {cache: 'no-store'}); if (!r.ok) throw new Error(`Could not read ${CONFIG_URL} (${r.status}).`); return new File([await r.blob()], CONFIG_URL.split('/').pop()); }
+  (async () => {
+    if (/^https?:$/.test(location.protocol)) {                // hosted: read the workbook that sits beside the page
+      try { await loadWorkbook(await fetchConfig(), null, false); state.cfg.wb.url = CONFIG_URL; afterCfg(); return; } catch (e) { /* fall through to the remembered file */ }
+    }
+    const h = await recallHandle(); if (!h || !h.getFile) return;
+    let perm = 'prompt'; try { perm = await h.queryPermission({mode: 'read'}); } catch (e) {}
+    const go = async () => { await loadWorkbook(await h.getFile(), h, false); afterCfg(); $('resumeCfg').hidden = true; rememberHandle(h); };
+    if (perm === 'granted') { try { await go(); return; } catch (e) { /* ask again below */ } }
+    const b = $('resumeCfg'); b.textContent = `Load ${h.name || 'config workbook'} (click to allow access)`; b.hidden = false;
+    b.onclick = async () => {
+      try { if (perm !== 'granted' && (await h.requestPermission({mode: 'read'})) !== 'granted') return; await go(); }
+      catch (e) { wbError(e); }
+    };
+  })();
+}
+init();
+window.__state = state;   // for debugging in the console
+</script>
+</body>
+</html>
