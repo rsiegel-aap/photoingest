@@ -61,6 +61,7 @@ dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);c
 dialog::backdrop{background:rgba(0,0,0,.4)}
 .card .zoom{position:absolute;top:6px;right:6px;width:28px;height:28px;padding:0;line-height:1;font-size:16px;border-radius:6px;opacity:.9;z-index:1}
 .card .zoom:hover,.card .zoom:focus-visible{opacity:1;border-color:var(--accent)}
+#cfgInfo.cfgNone{color:var(--warn);font-weight:700;font-size:13px}
 #noDest{margin-top:10px;padding:8px 10px;border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;font-weight:700}
 #pv{max-width:none;width:min(96vw,1300px);height:92vh;padding:12px}
 #pv[open]{display:flex;flex-direction:column;gap:8px}
@@ -175,31 +176,9 @@ const SAMPLE = 64 * 1024;                 // bytes sampled from start, middle an
 const PLAN_DELAY = 80;                    // ms to wait before recalculating planned names
 const thumbQueue = []; let thumbActive = 0;
 
-const SAMPLE_CONFIG = {
-  projects: [
-    {project_code:'PROJ1', project_name:'Sample Project One', active:'Y'},
-    {project_code:'PROJ2', project_name:'Sample Project Two', active:'Y'}],
-  locations: [
-    {project_code:'PROJ1', location_code:'T1-L1-GateA1', location_name:'Terminal 1 Level 1 Gate A1', active:'Y'},
-    {project_code:'PROJ1', location_code:'T1-L1-GateA2', location_name:'Terminal 1 Level 1 Gate A2', active:'Y'},
-    {project_code:'PROJ1', location_code:'T1-L2-BagMakeup', location_name:'Terminal 1 Level 2 Baggage Make-up', active:'Y'},
-    {project_code:'PROJ1', location_code:'T2-L1-GateB12', location_name:'Terminal 2 Level 1 Gate B12', active:'Y'},
-    {project_code:'PROJ2', location_code:'CONC-C-L1', location_name:'Concourse C Level 1', active:'Y'},
-    {project_code:'PROJ2', location_code:'CONC-C-L2', location_name:'Concourse C Level 2', active:'Y'},
-    {project_code:'PROJ2', location_code:'BHS-OUTBOUND', location_name:'Outbound Baggage Handling Area', active:'Y'}],
-  subjects: [
-    {subject_code:'BaggageBelt', subject_name:'Baggage belt / conveyor', active:'Y'},
-    {subject_code:'Signage', subject_name:'Signage and wayfinding', active:'Y'},
-    {subject_code:'Damage', subject_name:'Damage or defect', active:'Y'},
-    {subject_code:'Structural', subject_name:'Structural elements', active:'Y'},
-    {subject_code:'MEP', subject_name:'Mechanical / electrical / plumbing', active:'Y'},
-    {subject_code:'Equipment', subject_name:'Equipment', active:'Y'},
-    {subject_code:'Overview', subject_name:'General overview', active:'Y'}]
-};
-
 // -------------------------------------------------------------------- state
 const state = {
-  cfg: {...structuredClone(SAMPLE_CONFIG), dir: null, label: 'built-in sample list'},
+  cfg: {projects: [], locations: [], subjects: [], dir: null, wb: null, warn: [], added: {locations: [], subjects: []}, label: ''},
   src: null, dest: null, items: [], sel: new Set(), last: null, busy: false, loading: false, gen: 0, plan: []
 };
 const cache = new Map();   // existing-name cache for destination folders
@@ -457,9 +436,15 @@ function refreshCfgUI(keepProject) {
   $('project').innerHTML = activeProjects().map(p =>
     `<option value="${esc(p.project_code)}">${esc(p.project_code)} - ${esc(p.project_name || '')}</option>`).join('');
   if (prev && [...$('project').options].some(o => o.value === prev)) $('project').value = prev;
-  $('cfgInfo').textContent = `Using ${state.cfg.label}.` + (state.cfg.dir ? '' : state.cfg.wb ?
+  const none = !state.cfg.projects.length;
+  $('project').disabled = none;
+  if (none) $('project').innerHTML = '<option value="">No config loaded</option>';
+  for (const id of ['loc', 'subj', 'newLoc', 'newSubj']) $(id).disabled = none;
+  $('cfgInfo').classList.toggle('cfgNone', none);
+  if (none) $('cfgInfo').textContent = 'No project configuration is loaded. Click "Load config workbook…" and choose your iad_config.xlsx to begin.';
+  else $('cfgInfo').textContent = `Using ${state.cfg.label}.` + (state.cfg.dir ? '' : state.cfg.wb ?
     ' Locations or subjects added with "+ New" last until you close this tab. To keep them, add them on the workbook\'s Ingest sheet, save, then click Reload.' :
-    ' New locations/subjects you add last until you close this tab. Click \"Load config workbook\" to use the shared list (the page remembers it next time).');
+    '');
   const w = state.cfg.warn || [];
   $('cfgWarn').textContent = w.length ? `${w.length} item(s) need attention in the workbook: ` + w.slice(0, 3).join(' ') + (w.length > 3 ? ' …' : '') : '';
   $('reloadXlsx').disabled = !state.cfg.wb;
@@ -745,7 +730,7 @@ function updateSelInfo() { $('selInfo').textContent = `${state.sel.size} selecte
 function updateButtons() {
   const has = state.items.length > 0;
   ['selAll', 'selNone', 'selUntagged'].forEach(id => $(id).disabled = !has);
-  $('apply').disabled = !state.sel.size; $('clear').disabled = !state.sel.size;
+  $('apply').disabled = !state.sel.size || !state.cfg.projects.length; $('clear').disabled = !state.sel.size;
   $('noDest').hidden = !!state.dest;
   $('copy').disabled = state.busy || state.loading || !state.dest || !state.plan.length;
 }
