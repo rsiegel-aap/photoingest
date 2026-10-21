@@ -306,8 +306,9 @@ const idb = (mode, fn) => new Promise(res => {
       tx.oncomplete = () => res(r && 'result' in r ? r.result : null); tx.onerror = tx.onabort = () => res(null); } catch (e) { res(null); } };
   } catch (e) { res(null); }
 });
-const rememberHandle = h => h && idb('readwrite', st => st.put(h, 'workbook'));
-const recallHandle = () => idb('readonly', st => st.get('workbook'));
+const REMEMBER_WORKBOOK = false;     // false: never store or reuse a file pick (used for the public web copy)
+const rememberHandle = h => REMEMBER_WORKBOOK && h && idb('readwrite', st => st.put(h, 'workbook'));
+const recallHandle = () => REMEMBER_WORKBOOK ? idb('readonly', st => st.get('workbook')) : idb('readwrite', st => st.delete('workbook')).then(() => null);
 
 // ---- workbook (.xlsx) reader: minimal zip + XML, no libraries, nothing leaves the computer
 async function unzip(buf) {
