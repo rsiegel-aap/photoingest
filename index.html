@@ -193,6 +193,7 @@ const clean = (t, max = 40) => {
 const extOf = n => { const i = n.lastIndexOf('.'); return i < 0 ? '' : n.slice(i).toLowerCase(); };
 const pad = (n, w = 2) => String(n).padStart(w, '0');
 const dayKey = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+const dayDots = d => `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`;   // date shown in folder and file names
 const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const isActive = r => !['N','NO','0','FALSE'].includes((r.active || 'Y').trim().toUpperCase());
@@ -683,7 +684,7 @@ async function computePlan(fresh) {
     .sort((a, b) => a.taken - b.taken || a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
   const counters = new Map(), plan = [];
   for (const it of list) {
-    const day = dayKey(it.taken);
+    const day = dayDots(it.taken);
     const visit = `${day}_${project}`;
     const parts = [day, project, it.loc, it.subj]; const note = clean(it.note, 30);
     if (note) parts.push(note);
